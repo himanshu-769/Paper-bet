@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Paper Bets – play-money live sportsbook</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@600;700&family=Archivo:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4efe6;--sf:#fffdf8;--tx:#1d1b16;--mu:#6b665a;--ac:#1d4ed8;--up:#16794c;--dn:#b42318;--bd:#d9d2c3;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14161c;--sf:#1d2029;--tx:#eceae4;--mu:#a09b8e;--ac:#7aa2ff;--up:#4cc38a;--dn:#ff7b6e;--bd:#2e323f}}
+:root[data-theme="dark"]{--bg:#14161c;--sf:#1d2029;--tx:#eceae4;--mu:#a09b8e;--ac:#7aa2ff;--up:#4cc38a;--dn:#ff7b6e;--bd:#2e323f}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 Archivo,system-ui,sans-serif}
+main{max-width:720px;margin:0 auto;padding:16px 16px 60px}
+h1,h2,.num{font-family:'Archivo Narrow',Impact,sans-serif;font-weight:700;margin:0}
+.banner{background:var(--tx);color:var(--bg);text-align:center;font-size:.85rem;padding:6px 10px;border-radius:8px;margin-bottom:14px}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:14px}
+h1{font-size:2rem;line-height:1}
+.bal{text-align:right}.bal .num{font-size:2rem;line-height:1}
+.meta{color:var(--mu);font-size:.85rem}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:12px}
+.teams{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;text-align:center;margin:8px 0 12px}
+.teams b{font-family:'Archivo Narrow',sans-serif;font-size:1.25rem}
+.sc{font-size:2.2rem}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--bd);background:var(--bg);padding:10px;border-radius:8px}
+button:focus-visible,input:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+button:disabled{opacity:.45;cursor:not-allowed}
+.odds{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.odds button{display:flex;justify-content:space-between}
+.odds button.sel{background:var(--ac);border-color:var(--ac);color:#fff}
+.odds .num{font-size:1.2rem}
+.slip{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px}
+input{padding:9px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);width:100%}
+.pri{background:var(--ac);border-color:var(--ac);color:#fff}
+.w{color:var(--up)}.l{color:var(--dn)}
+.row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--bd);font-size:.95rem}
+.row:last-child{border:0}
+.pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--dn);margin-right:6px;animation:p 1.2s infinite}
+@keyframes p{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.pulse{animation:none}}
+.pf{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid var(--bd)}.pf:last-child{border:0}
+.av{width:52px;height:52px;border-radius:50%;background:var(--ac);color:#fff;display:grid;place-items:center;font-family:'Archivo Narrow',sans-serif;font-weight:700;font-size:1.3rem}
+.pf h3{margin:0;font-family:'Archivo Narrow',sans-serif;font-size:1.25rem}
+.pf input,.pf textarea{margin-top:6px;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);width:100%;font:inherit;color:inherit}
+.pf textarea{resize:vertical;min-height:56px}
+</style></head><body><main>
+<div class="banner">Play money only. Credits have no cash value and can't be withdrawn.</div>
+<div class="top"><div><h1>Paper Bets</h1><span class="meta">Live games, simulated</span></div>
+<div class="bal"><div class="meta">Balance</div><div class="num" id="bal">1000</div></div></div>
+<div id="games"></div>
+<div class="card"><div class="row" style="border:0"><h2>My bets</h2><button id="reset">Reset to 1000</button></div><div id="bets"></div></div>
+<div class="card"><h2>Team profiles</h2><p class="meta">Tap a role or bio to edit. Changes save in your browser.</p><div id="people"></div></div>
+<p class="meta">If gambling stops being fun, free help is available: in the US call 1-800-522-4700 (National Problem Gambling Helpline).</p>
+</main>
+<script>
+const KEY='paperbets-v1',LEN=60;
+const TEAMS=[['Harbor Hawks','Ridge Wolves'],['Northside FC','Union United'],['Coastal Kings','Valley Storm'],['Metro Bulls','Lakeshore Fox'],['Summit Peaks','Delta Dragons'],['Iron City','Bay Pirates']];
+let st={bal:1000,bets:[]},games=[],pick={};
+try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&typeof s.bal==='number')st=s}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let gid=Date.now();
+function newGame(slot){const t=TEAMS[(Math.random()*TEAMS.length)|0];return{id:++gid,slot,home:t[0],away:t[1],hs:0,as:0,t:0,str:Math.random()*.3-.15,over:false}}
+function prob(g){const left=(LEN-g.t)/LEN,lead=g.hs-g.as;
+const z=g.str*left*4+lead*(1.1-left*.7)*1.3;return Math.min(.97,Math.max(.03,1/(1+Math.exp(-z))))}
+const odds=p=>Math.max(1.03,+(0.94/p).toFixed(2));
+for(let i=0;i<3;i++)games.push(newGame(i));
+function tick(){games.forEach((g,i)=>{
+if(g.over){if(g.wait--<=0)games[i]=newGame(i);return}
+g.t++;const p=.5+g.str;
+if(Math.random()<.28){Math.random()<p?g.hs++:g.as++}
+if(g.t>=LEN){if(g.hs===g.as)g.hs++;g.over=true;g.wait=4;settle(g)}});
+draw()}
+function settle(g){st.bets.forEach(b=>{if(b.gid===g.id&&b.res==='open'){const win=(g.hs>g.as)===(b.side==='h');b.res=win?'won':'lost';if(win)st.bal+=Math.round(b.stake*b.odds)}});save()}
+function draw(){
+document.getElementById('bal').textContent=st.bal;
+const act=document.activeElement,keep=act&&act.id&&act.id.startsWith('s')?[act.id,act.value]:null;
+document.getElementById('games').innerHTML=games.map(g=>{const p=prob(g),oh=odds(p),oa=odds(1-p),open=!g.over,sel=pick[g.id];
+return `<div class="card"><div class="meta"><span class="pulse"></span>${g.over?'Final':'Live · minute '+g.t+' of '+LEN}</div>
+<div class="teams"><b>${esc(g.home)}</b><span class="num sc">${g.hs} : ${g.as}</span><b>${esc(g.away)}</b></div>
+<div class="odds"><button data-g="${g.id}" data-s="h" data-o="${oh}" class="${sel&&sel.side==='h'?'sel':''}" ${open?'':'disabled'}><span>${esc(g.home)}</span><span class="num">${oh.toFixed(2)}</span></button>
+<button data-g="${g.id}" data-s="a" data-o="${oa}" class="${sel&&sel.side==='a'?'sel':''}" ${open?'':'disabled'}><span>${esc(g.away)}</span><span class="num">${oa.toFixed(2)}</span></button></div>
+${sel&&open?`<div class="slip"><input id="s${g.id}" type="number" min="1" max="${st.bal}" value="${sel.stake||10}" aria-label="Stake in credits"><button class="pri" data-place="${g.id}">Bet at ${sel.odds.toFixed(2)}</button></div>`:''}</div>`}).join('');
+if(keep){const el=document.getElementById(keep[0]);if(el){el.value=keep[1];el.focus()}}
+const nm=id=>{const g=games.find(x=>x.id===id);return g?g.home+' vs '+g.away:'Past game'};
+document.getElementById('bets').innerHTML=st.bets.length?st.bets.slice(-8).reverse().map(b=>`<div class="row"><span>${esc(b.name)}: ${esc(b.team)} @ ${b.odds.toFixed(2)}</span><span class="${b.res==='won'?'w':b.res==='lost'?'l':'meta'}">${b.res==='open'?'Open · '+b.stake:b.res==='won'?'+'+Math.round(b.stake*b.odds):'−'+b.stake}</span></div>`).join(''):'<p class="meta">No bets yet. Pick a team above to start.</p>'}
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+if(b.id==='reset'){st={bal:1000,bets:[]};pick={};save();draw();return}
+if(b.dataset.g){const id=+b.dataset.g;pick[id]={side:b.dataset.s,odds:+b.dataset.o,stake:10};draw();return}
+if(b.dataset.place){const id=+b.dataset.place,g=games.find(x=>x.id===id),s=pick[id],inp=document.getElementById('s'+id);
+const stake=Math.floor(+inp.value);if(!g||g.over||!s||!(stake>=1)||stake>st.bal){inp.focus();return}
+st.bal-=stake;st.bets.push({gid:id,name:g.home+' vs '+g.away,side:s.side,team:s.side==='h'?g.home:g.away,odds:s.odds,stake,res:'open'});delete pick[id];save();draw()}});
+const PEOPLE=['Jayasamanta Durga','Barun Munda','Himanshu Sahu'];
+let pf={};try{pf=JSON.parse(localStorage.getItem('paperbets-profiles'))||{}}catch(e){}
+document.getElementById('people').innerHTML=PEOPLE.map((n,i)=>{const p=pf[i]||{};
+return `<div class="pf"><div class="av" aria-hidden="true">${n.split(' ').map(w=>w[0]).join('')}</div><div><h3>${esc(n)}</h3>
+<input data-p="${i}" data-f="role" placeholder="Role (e.g. Founder, Developer)" aria-label="Role for ${esc(n)}" value="${esc(p.role||'')}">
+<textarea data-p="${i}" data-f="bio" placeholder="Short bio" aria-label="Bio for ${esc(n)}">${esc(p.bio||'')}</textarea></div></div>`}).join('');
+document.addEventListener('input',e=>{const t=e.target;if(t.dataset.p===undefined)return;(pf[t.dataset.p]=pf[t.dataset.p]||{})[t.dataset.f]=t.value;try{localStorage.setItem('paperbets-profiles',JSON.stringify(pf))}catch(x){}});
+draw();setInterval(tick,1500);
+</script></body></html>
